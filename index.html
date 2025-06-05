@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบค้นหาคำใบ้นักเรียน</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-loading-overlay/2.1.7/loadingoverlay.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.3/sweetalert2.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.3/sweetalert2.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f4f8;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+        
+        .hero-pattern {
+            background-image: 
+                radial-gradient(circle at 25px 25px, rgba(255,255,255,0.2) 2px, transparent 0),
+                radial-gradient(circle at 75px 75px, rgba(255,255,255,0.1) 2px, transparent 0);
+            background-size: 100px 100px;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+    <!-- Header -->
+    <header class="gradient-bg hero-pattern text-white py-16">
+        <div class="container mx-auto text-center px-4">
+            <div class="inline-block p-4 bg-white bg-opacity-20 rounded-full mb-6">
+                <i class="fas fa-search text-4xl"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">ระบบค้นหาคำใบ้</h1>
+            <p class="text-xl opacity-90">ค้นหาเอกสารคำใบ้ด้วยรหัสนักเรียน</p>
+        </div>
+    </header>
+
+    <!-- Search Section -->
+    <section class="py-8 px-4 md:px-8">
+        <div class="container mx-auto max-w-3xl bg-white rounded-xl shadow-lg p-6 -mt-10 relative z-10 pulse-glow">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchInput" placeholder="ค้นหาด้วยรหัสนักเรียน..." 
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg transition duration-300">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="searchBtn" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 font-medium">
+                        <i class="fas fa-search mr-2"></i>ค้นหา
+                    </button>
+                    <button id="clearBtn" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-300 font-medium">
+                        <i class="fas fa-eraser mr-2"></i>ล้าง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-4 px-4 md:px-8">
+        <div class="container mx-auto max-w-3xl">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 text-center">
+                <p class="text-gray-600">
+                    <i class="fas fa-database mr-2"></i>
+                    ระบบมีข้อมูลทั้งหมด <span id="totalCount" class="font-bold text-blue-600">0</span> รายการ
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="py-4 px-4 md:px-8 mb-16">
+        <div class="container mx-auto">
+            <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Results will be displayed here -->
+            </div>
+            <div id="noResults" class="hidden text-center py-16">
+                <div class="text-6xl mb-4">🔍</div>
+                <h3 class="text-2xl font-medium text-gray-700 mt-4">ไม่พบข้อมูลที่ค้นหา</h3>
+                <p class="text-gray-500 mt-2">กรุณาตรวจสอบรหัสนักเรียนและลองใหม่อีกครั้ง</p>
+            </div>
+            <div id="loadingState" class="text-center py-16">
+                <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="fixed bottom-0 w-full bg-gray-800 text-white py-4 px-4 text-center">
+        <p><i class="fas fa-copyright mr-1"></i>2025 Copyright | พัฒนาโดยนายพรหมพิริยะ ศรีสว่าง</p>
+    </footer>
+
+    <script>
+        $(document).ready(function() {
+            let hints = [];
+            
+            // YOUR DATA - Replace this with your actual student data
+            const sampleData = [
+                // Add your student data here in this format:
+                { id: "YOUR_STUDENT_ID_1", "PDF URL": "https://drive.google.com/file/d/YOUR_FILE_ID_1/view" },
+                { id: "YOUR_STUDENT_ID_2", "PDF URL": "https://drive.google.com/file/d/YOUR_FILE_ID_2/view" },
+                { id: "YOUR_STUDENT_ID_3", "PDF URL": "https://drive.google.com/file/d/YOUR_FILE_ID_3/view" },
+                // Add more entries as needed...
+                
+                // Example format:
+                { id: "60001", "PDF URL": "https://drive.google.com/file/d/1ABC123DEF456GHI789JKL/view" },
+                { id: "60002", "PDF URL": "https://drive.google.com/file/d/1XYZ789ABC123DEF456GHI/view" }
+            ];
+            
+            // Fetch data from API
+            function fetchData() {
+                $("#loadingState").removeClass("hidden");
+                $("#resultsContainer").empty();
+                
+                // Simulate API call - replace with your actual API endpoint
+                setTimeout(() => {
+                    try {
+                        // Replace this with actual API call
+                        hints = sampleData;
+                        displayResults(hints);
+                        $("#totalCount").text(hints.length);
+                        $("#loadingState").addClass("hidden");
+                        
+                        // Show success message
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true
+                        });
+                        
+                        Toast.fire({
+                            icon: 'success',
+                            title: `โหลดข้อมูลสำเร็จ (${hints.length} รายการ)`
+                        });
+                        
+                    } catch (error) {
+                        console.error("Error fetching data:", error);
+                        $("#loadingState").addClass("hidden");
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+                            confirmButtonColor: '#3b82f6'
+                        });
+                    }
+                }, 1500);
+                
+                // OPTION 1: Use Google Apps Script API (Recommended)
+                // Uncomment this section and replace with your actual API endpoint:
+                /*
+                $.ajax({
+                    url: "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE",
+                    type: "GET",
+                    dataType: "json",
+                    success: function(data) {
+                        hints = data;
+                        displayResults(hints);
+                        $("#totalCount").text(hints.length);
+                        $("#loadingState").addClass("hidden");
+                    },
+                    error: function(error) {
+                        console.error("Error fetching data:", error);
+                        $("#loadingState").addClass("hidden");
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+                            confirmButtonColor: '#3b82f6'
+                        });
+                    }
+                });
+                */
+            }
+            
+            // Display results
+            function displayResults(results) {
+                const container = $("#resultsContainer");
+                container.empty();
+                
+                if (results.length === 0) {
+                    $("#noResults").removeClass("hidden");
+                } else {
+                    $("#noResults").addClass("hidden");
+                    
+                    results.forEach((hint, index) => {
+                        // Convert Google Drive URL to image URL
+                        const pdfUrl = hint["PDF URL"];
+                        const fileId = extractFileId(pdfUrl);
+                        const imageUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+                        const viewUrl = `https://drive.google.com/file/d/${fileId}/view`;
+                        
+                        const card = `
+                            <div class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 card-hover border border-gray-100 fade-in" style="animation-delay: ${index * 0.1}s">
+                                <div class="p-6">
+                                    <div class="flex justify-center items-center mb-4">
+                                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-semibold px-4 py-2 rounded-lg shadow-md">
+                                            <i class="fas fa-user-graduate mr-2"></i>รหัสนักเรียน: ${hint.id}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-5 flex gap-3">
+                                        <button class="view-hint flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition duration-300 font-medium shadow-md hover:shadow-lg" 
+                                                data-id="${fileId}" data-student-id="${hint.id}">
+                                            <i class="fas fa-eye mr-2"></i>ดูเอกสาร
+                                        </button>
+                                        <a href="${viewUrl}" target="_blank" 
+                                           class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-4 rounded-lg transition duration-300 text-center font-medium shadow-md hover:shadow-lg">
+                                            <i class="fas fa-download mr-2"></i>ดาวน์โหลด
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        container.append(card);
+                    });
+                }
+            }
+            
+            // Extract file ID from Google Drive URL
+            function extractFileId(url) {
+                if (!url) return "";
+                const match = url.match(/\/d\/([^\/]+)/);
+                return match ? match[1] : "";
+            }
+            
+            // Search functionality
+            function performSearch() {
+                const searchTerm = $("#searchInput").val().toLowerCase().trim();
+                
+                if (searchTerm === "") {
+                    displayResults(hints);
+                    return;
+                }
+                
+                const filteredResults = hints.filter(hint => 
+                    hint.id.toLowerCase().includes(searchTerm)
+                );
+                
+                displayResults(filteredResults);
+                
+                // Show search results info
+                if (filteredResults.length > 0) {
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                    
+                    Toast.fire({
+                        icon: 'info',
+                        title: `พบ ${filteredResults.length} รายการ`
+                    });
+                }
+            }
+            
+            // Search button click
+            $("#searchBtn").click(performSearch);
+            
+            // Clear search
+            $("#clearBtn").click(function() {
+                $("#searchInput").val("");
+                displayResults(hints);
+                
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+                
+                Toast.fire({
+                    icon: 'success',
+                    title: 'ล้างการค้นหาแล้ว'
+                });
+            });
+            
+            // View hint document
+            $(document).on("click", ".view-hint", function() {
+                const fileId = $(this).data("id");
+                const studentId = $(this).data("student-id");
+                const imageUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+                
+                Swal.fire({
+                    title: `คำใบ้ของนักเรียนรหัส ${studentId}`,
+                    html: `
+                        <div class="flex justify-center p-4">
+                            <img src="${imageUrl}" alt="คำใบ้" class="max-w-full h-auto rounded-lg shadow-lg" 
+                                 style="max-height: 70vh;" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgNzBDMTA1LjUyMyA3MCAxMTAgNzQuNDc3IDExMCA4MFY5MEMxMTAgOTUuNTIzIDEwNS41MjMgMTAwIDEwMCAxMDBDOTQuNDc3IDEwMCA5MCA5NS41MjMgOTAgOTBWODBDOTAgNzQuNDc3IDk0LjQ3NyA3MCAxMDAgNzBaIiBmaWxsPSIjOUI5QjlCIi8+CjxwYXRoIGQ9Ik0xMDAgMTEwQzEwNS41MjMgMTEwIDExMCAxMTQuNDc3IDExMCAxMjBDMTEwIDEyNS41MjMgMTA1LjUyMyAxMzAgMTAwIDEzMEM5NC40NzcgMTMwIDkwIDEyNS41MjMgOTAgMTIwQzkwIDExNC40NzcgOTQuNDc3IDExMCAxMDAgMTEwWiIgZmlsbD0iIzlCOUI5QiIvPgo8L3N2Zz4K'; this.alt='ไม่สามารถโหลดรูปภาพได้';">
+                        </div>
+                    `,
+                    width: '90%',
+                    confirmButtonText: 'ปิด',
+                    confirmButtonColor: '#3b82f6',
+                    showCloseButton: true,
+                    customClass: {
+                        popup: 'rounded-xl'
+                    }
+                });
+            });
+            
+            // Handle search on Enter key
+            $("#searchInput").keypress(function(e) {
+                if (e.which === 13) {
+                    performSearch();
+                }
+            });
+            
+            // Auto-search as user types (debounced)
+            let searchTimeout;
+            $("#searchInput").on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const searchTerm = $(this).val().toLowerCase().trim();
+                    if (searchTerm.length >= 2 || searchTerm.length === 0) {
+                        performSearch();
+                    }
+                }, 300);
+            });
+            
+            // Initial data fetch
+            fetchData();
+            
+            // Add refresh button functionality
+            $(document).keydown(function(e) {
+                if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                    e.preventDefault();
+                    fetchData();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
